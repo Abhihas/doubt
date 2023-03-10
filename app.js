@@ -1,4 +1,5 @@
 const express = require("express");
+const express = require("express");
 const app = express();
 let sqlite3 = require("sqlite3");
 let path = require("path");
@@ -23,6 +24,15 @@ let initializeDBAndServer = async () => {
 
 initializeDBAndServer();
 
+const convertDbObjectToResponseObject = (dbObject) => {
+  return {
+    playerId: dbObject.player_id,
+    playerName: dbObject.player_name,
+    jerseyNumber: dbObject.jersey_number,
+    role: dbObject.role,
+  };
+};
+
 //get
 app.get("/players/", async (request, response) => {
   const getPlayersQuery = `
@@ -31,15 +41,6 @@ app.get("/players/", async (request, response) => {
  FROM
  cricket_team;`;
   const playersArray = await db.all(getPlayersQuery);
-
-  const convertDbObjectToResponseObject = (dbObject) => {
-    return {
-      playerId: dbObject.player_id,
-      playerName: dbObject.player_name,
-      jerseyNumber: dbObject.jersey_number,
-      role: dbObject.role,
-    };
-  };
 
   response.send(
     playersArray.map((eachPlayer) =>
@@ -54,7 +55,7 @@ app.get("/players/:playerId/", async (request, response) => {
   let getSqlQuery = `
     SELECT * FROM cricket_team WHERE player_id=${playerId};`;
   let array = await db.get(getSqlQuery);
-  response.send(array);
+  response.send(convertDbObjectToResponseObject(array));
 });
 
 app.use(express.json());
@@ -62,34 +63,34 @@ app.use(express.json());
 //post
 app.post("/players/", async (request, response) => {
   let bodyDetails = request.body;
-  let { player_name, jersey_number, role } = bodyDetails;
+  let { playerName, jerseyNumber, role } = bodyDetails;
   let getSql = `
     INSERT INTO
       cricket_team (player_name,jersey_number,role)
     VALUES
       (
-        '${player_name}',
-         ${jersey_number},
+        '${playerName}',
+         ${jerseyNumber},
          '${role}'
       );`;
 
   let dbRes = await db.run(getSql);
   let playId = dbRes.lastID;
-  response.send({ playId: playId });
+  response.send("Player Added to Team");
 });
 
 //put
 app.put("/players/:playerId/", async (request, response) => {
   const bookDetails = request.body;
   let { playerId } = request.params;
-  const { player_name, jersey_number, role } = bookDetails;
+  const { playerName, jerseyNumber, role } = bookDetails;
 
   const updateBookQuery = `
     UPDATE
       cricket_team
     SET
-      player_name='${player_name}',
-      jersey_number=${jersey_number},
+      player_name='${playerName}',
+      jersey_number=${jerseyNumber},
 
 
       role='${role}'
